@@ -61,7 +61,7 @@ class Send
     protected $user;
 
     /**
-     * 订单状态
+     * 阅读状态
      *
      * @Column(type="smallint", nullable=false)
      */
