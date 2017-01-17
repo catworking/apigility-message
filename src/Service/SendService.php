@@ -31,11 +31,17 @@ class SendService
      */
     protected $userService;
 
+    /**
+     * @var \ApigilityCommunicate\Service\NotificationService
+     */
+    protected $notificationService;
+
     public function __construct(ServiceManager $services)
     {
         $this->em = $services->get('Doctrine\ORM\EntityManager');
         $this->messageService = $services->get('ApigilityMessage\Service\MessageService');
         $this->userService = $services->get('ApigilityUser\Service\UserService');
+        $this->notificationService = $services->get('ApigilityCommunicate\Service\NotificationService');
     }
 
     /**
@@ -75,6 +81,17 @@ class SendService
             return $send;
         };
 
+        $notificationService = $this->notificationService;
+        $create_notification = function (DoctrineEntity\Send $send, $phone_notify) use ($notificationService) {
+            $notificationService->createNotification((object)[
+                'user_id' => $send->getUser()->getId(),
+                'title'   => $send->getMessage()->getUser()->getNickname(),
+                'content' => mb_substr($send->getMessage()->getText(), 0, 20),
+                'type'    => 'Message.Send',
+                'object_id' => $send->getId()
+            ], $phone_notify);
+        };
+
         if (isset($data->user_filters)) {
             // 批量发送
             $user_filters = $data->user_filters;
@@ -90,6 +107,13 @@ class SendService
                 if (count($sends)) {
                     $this->em->flush();
 
+                    $phone_notify_count = 0;
+                    foreach ($sends as $send) {
+                        $phone_notify = $phone_notify_count < 100 ? true : false;
+                        $create_notification($send, $phone_notify);
+                        $phone_notify_count++;
+                    }
+
                     header('sent-total:'.count($sends));
 
                     return end($sends);
@@ -103,6 +127,8 @@ class SendService
 
             $send = $create_send($user);
             if (empty($send)) throw new \Exception('已经向此用户发送过该消息');
+
+            $create_notification($send, true);
 
             return $send;
         }
