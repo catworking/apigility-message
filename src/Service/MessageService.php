@@ -12,6 +12,7 @@ use Doctrine\ORM\QueryBuilder;
 use Doctrine\ORM\Tools\Pagination\Paginator as DoctrineToolPaginator;
 use DoctrineORMModule\Paginator\Adapter\DoctrinePaginator as DoctrinePaginatorAdapter;
 use ApigilityMessage\DoctrineEntity;
+use Doctrine\ORM\Query\Expr;
 
 class MessageService
 {
@@ -69,7 +70,7 @@ class MessageService
     public function getMessages($params)
     {
         $qb = new QueryBuilder($this->em);
-        $qb->select('m')->from('ApigilityMessage\DoctrineEntity\Message', 'm');
+        $qb->select('m')->from('ApigilityMessage\DoctrineEntity\Message', 'm')->orderBy(new Expr\OrderBy('m.id', 'DESC'));
 
         $where = '';
         if (isset($params->user_id)) {
